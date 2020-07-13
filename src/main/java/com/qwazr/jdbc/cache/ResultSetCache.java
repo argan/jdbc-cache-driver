@@ -66,7 +66,19 @@ public interface ResultSetCache {
 
     <T extends Statement> ResultSet get(CachedStatement statement, String key, Provider s) throws SQLException;
 
-    boolean checkIfExists(String key);
+	/**
+	 * check whether the key exists in cache
+	 * @param key
+	 * @return
+	 */
+	boolean checkIfExists(String key);
+
+	/**
+	 * check whether accept the SQL query
+	 * @param query
+	 * @return
+	 */
+	boolean acceptQuery(String query);
 
     interface Provider {
         ResultSet provide() throws SQLException, IOException;

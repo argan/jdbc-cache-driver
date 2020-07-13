@@ -29,7 +29,8 @@ class ResultSetInMemoryCacheImpl extends ResultSetCacheImpl {
     private final ConcurrentHashMap<String, ReentrantLock> activeKeys;
     private final ConcurrentHashMap<String, byte[]> cache;
 
-    ResultSetInMemoryCacheImpl() {
+    ResultSetInMemoryCacheImpl(CacheConfig config) {
+		super(config);
         this.activeKeys = new ConcurrentHashMap<>();
         this.cache = new ConcurrentHashMap<>();
     }
@@ -45,7 +46,8 @@ class ResultSetInMemoryCacheImpl extends ResultSetCacheImpl {
      * @return the cached ResultSet
      * @throws SQLException if the statement cannot be executed
      */
-    public ResultSet get(final CachedStatement statement, final String key, final ResultSetCache.Provider resultSetProvider)
+    @Override
+	public ResultSet get(final CachedStatement statement, final String key, final ResultSetCache.Provider resultSetProvider)
             throws SQLException {
         if (!cache.containsKey(key)) {
             if (resultSetProvider == null)

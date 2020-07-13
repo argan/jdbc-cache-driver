@@ -15,7 +15,7 @@
  */
 package com.qwazr.jdbc.cache;
 
-import javax.xml.bind.DatatypeConverter;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
@@ -77,16 +77,17 @@ class CachedStatement<T extends Statement> implements Statement {
     }
 
     final T checkBackendStatement(final String error) throws SQLException {
-        if (backendStatement != null)
-            return backendStatement;
-        else
-            throw error == null ? new SQLFeatureNotSupportedException() : new SQLException(error);
+        if (backendStatement != null) {
+			return backendStatement;
+		} else {
+			throw error == null ? new SQLFeatureNotSupportedException() : new SQLException(error);
+		}
     }
 
     static String generateCacheKey(final String src) throws SQLException {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
-            return DatatypeConverter.printHexBinary(md.digest(src.getBytes()));
+            return bytesToHex(md.digest(src.getBytes()));
         } catch (NoSuchAlgorithmException e) {
             throw new SQLException("MD5 is not available");
         }
@@ -97,15 +98,19 @@ class CachedStatement<T extends Statement> implements Statement {
     }
 
     final String getOrGenerateKey() throws SQLException {
-        if (generatedKey == null)
-            generateKey();
+        if (generatedKey == null) {
+			generateKey();
+		}
         return generatedKey;
     }
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
         this.executedSql = sql;
-        generateKey();
+        if (!resultSetCache.acceptQuery(sql)) {
+			return backendStatement.executeQuery(sql);
+		}
+		generateKey();
         return resultSetCache
                 .get(this, generatedKey, backendStatement == null ? null : () -> backendStatement.executeQuery(sql));
     }
@@ -118,91 +123,106 @@ class CachedStatement<T extends Statement> implements Statement {
 
     @Override
     public void close() throws SQLException {
-        if (backendStatement != null)
-            backendStatement.close();
+        if (backendStatement != null) {
+			backendStatement.close();
+		}
         closed = true;
     }
 
     @Override
     public int getMaxFieldSize() throws SQLException {
-        if (backendStatement != null)
-            return backendStatement.getMaxFieldSize();
-        else
-            return maxFieldSize;
+        if (backendStatement != null) {
+			return backendStatement.getMaxFieldSize();
+		} else {
+			return maxFieldSize;
+		}
     }
 
     @Override
     public void setMaxFieldSize(int max) throws SQLException {
-        if (backendStatement != null)
-            backendStatement.setMaxFieldSize(max);
+        if (backendStatement != null) {
+			backendStatement.setMaxFieldSize(max);
+		}
         this.maxFieldSize = max;
     }
 
     @Override
     public int getMaxRows() throws SQLException {
-        if (backendStatement != null)
-            return backendStatement.getMaxRows();
-        else
-            return maxRows;
+        if (backendStatement != null) {
+			return backendStatement.getMaxRows();
+		} else {
+			return maxRows;
+		}
     }
 
     @Override
     public void setMaxRows(int max) throws SQLException {
-        if (backendStatement != null)
-            backendStatement.setMaxRows(max);
+        if (backendStatement != null) {
+			backendStatement.setMaxRows(max);
+		}
         this.maxRows = max;
     }
 
     @Override
     public void setEscapeProcessing(boolean enable) throws SQLException {
-        if (backendStatement != null)
-            backendStatement.setEscapeProcessing(enable);
+        if (backendStatement != null) {
+			backendStatement.setEscapeProcessing(enable);
+		}
     }
 
     @Override
     public int getQueryTimeout() throws SQLException {
-        if (backendStatement != null)
-            return backendStatement.getQueryTimeout();
-        else
-            return queryTimeOut;
+        if (backendStatement != null) {
+			return backendStatement.getQueryTimeout();
+		} else {
+			return queryTimeOut;
+		}
     }
 
     @Override
     public void setQueryTimeout(int seconds) throws SQLException {
-        if (backendStatement != null)
-            backendStatement.setQueryTimeout(seconds);
+        if (backendStatement != null) {
+			backendStatement.setQueryTimeout(seconds);
+		}
         this.queryTimeOut = seconds;
     }
 
     @Override
     public void cancel() throws SQLException {
-        if (backendStatement != null)
-            backendStatement.cancel();
+        if (backendStatement != null) {
+			backendStatement.cancel();
+		}
     }
 
     @Override
     public SQLWarning getWarnings() throws SQLException {
-        if (backendStatement != null)
-            return backendStatement.getWarnings();
-        else
-            return null;
+        if (backendStatement != null) {
+			return backendStatement.getWarnings();
+		} else {
+			return null;
+		}
     }
 
     @Override
     public void clearWarnings() throws SQLException {
-        if (backendStatement != null)
-            backendStatement.clearWarnings();
+        if (backendStatement != null) {
+			backendStatement.clearWarnings();
+		}
     }
 
     @Override
     public void setCursorName(String name) throws SQLException {
-        if (backendStatement != null)
-            backendStatement.setCursorName(name);
+        if (backendStatement != null) {
+			backendStatement.setCursorName(name);
+		}
     }
 
     @Override
     public boolean execute(String sql) throws SQLException {
         this.executedSql = sql;
+		if (!resultSetCache.acceptQuery(sql)) {
+			return backendStatement.execute(sql);
+		}
         generateKey();
         return resultSetCache.checkIfExists(generatedKey) || checkBackendStatement("No cache entry").execute(sql);
     }
@@ -225,32 +245,36 @@ class CachedStatement<T extends Statement> implements Statement {
 
     @Override
     public void setFetchDirection(int direction) throws SQLException {
-        if (backendStatement != null)
-            backendStatement.setFetchDirection(direction);
+        if (backendStatement != null) {
+			backendStatement.setFetchDirection(direction);
+		}
         this.fetchDirection = direction;
     }
 
     @Override
     public int getFetchDirection() throws SQLException {
-        if (backendStatement != null)
-            return backendStatement.getFetchDirection();
-        else
-            return fetchDirection;
+        if (backendStatement != null) {
+			return backendStatement.getFetchDirection();
+		} else {
+			return fetchDirection;
+		}
     }
 
     @Override
     public void setFetchSize(int rows) throws SQLException {
-        if (backendStatement != null)
-            backendStatement.setFetchSize(rows);
+        if (backendStatement != null) {
+			backendStatement.setFetchSize(rows);
+		}
         this.fetchSize = rows;
     }
 
     @Override
     public int getFetchSize() throws SQLException {
-        if (backendStatement != null)
-            return backendStatement.getFetchSize();
-        else
-            return fetchSize;
+        if (backendStatement != null) {
+			return backendStatement.getFetchSize();
+		} else {
+			return fetchSize;
+		}
     }
 
     @Override
@@ -314,6 +338,9 @@ class CachedStatement<T extends Statement> implements Statement {
     @Override
     public boolean execute(String sql, int autoGeneratedKeys) throws SQLException {
         executedSql = sql;
+		if (!resultSetCache.acceptQuery(sql)) {
+			return backendStatement.execute(sql, autoGeneratedKeys);
+		}
         generateKey();
         return resultSetCache.checkIfExists(generatedKey) || checkBackendStatement("No cache entry")
                 .execute(sql, autoGeneratedKeys);
@@ -322,6 +349,9 @@ class CachedStatement<T extends Statement> implements Statement {
     @Override
     public boolean execute(String sql, int[] columnIndexes) throws SQLException {
         executedSql = sql;
+		if (!resultSetCache.acceptQuery(sql)) {
+			return backendStatement.execute(sql, columnIndexes);
+		}
         generateKey();
         return resultSetCache.checkIfExists(generatedKey) || checkBackendStatement("No cache entry")
                 .execute(sql, columnIndexes);
@@ -330,6 +360,9 @@ class CachedStatement<T extends Statement> implements Statement {
     @Override
     public boolean execute(String sql, String[] columnNames) throws SQLException {
         executedSql = sql;
+		if (!resultSetCache.acceptQuery(sql)) {
+			return backendStatement.execute(sql, columnNames);
+		}
         generateKey();
         return resultSetCache.checkIfExists(generatedKey) || checkBackendStatement("No cache entry")
                 .execute(sql, columnNames);
@@ -342,40 +375,45 @@ class CachedStatement<T extends Statement> implements Statement {
 
     @Override
     public boolean isClosed() throws SQLException {
-        if (backendStatement != null)
-            return backendStatement.isClosed();
-        else
-            return closed;
+        if (backendStatement != null) {
+			return backendStatement.isClosed();
+		} else {
+			return closed;
+		}
     }
 
     @Override
     public void setPoolable(boolean poolable) throws SQLException {
-        if (backendStatement != null)
-            backendStatement.setPoolable(poolable);
+        if (backendStatement != null) {
+			backendStatement.setPoolable(poolable);
+		}
         this.poolable = poolable;
     }
 
     @Override
     public boolean isPoolable() throws SQLException {
-        if (backendStatement != null)
-            return backendStatement.isPoolable();
-        else
-            return poolable;
+        if (backendStatement != null) {
+			return backendStatement.isPoolable();
+		} else {
+			return poolable;
+		}
     }
 
     @Override
     public void closeOnCompletion() throws SQLException {
-        if (backendStatement != null)
-            backendStatement.closeOnCompletion();
+        if (backendStatement != null) {
+			backendStatement.closeOnCompletion();
+		}
         this.closeOnCompletion = true;
     }
 
     @Override
     public boolean isCloseOnCompletion() throws SQLException {
-        if (backendStatement != null)
-            return backendStatement.isCloseOnCompletion();
-        else
-            return closeOnCompletion;
+        if (backendStatement != null) {
+			return backendStatement.isCloseOnCompletion();
+		} else {
+			return closeOnCompletion;
+		}
     }
 
     @Override
@@ -387,4 +425,15 @@ class CachedStatement<T extends Statement> implements Statement {
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return checkBackendStatement().isWrapperFor(iface);
     }
+
+	private static final byte[] HEX_ARRAY = "0123456789ABCDEF".getBytes(StandardCharsets.UTF_8);
+	private static String bytesToHex(byte[] bytes) {
+		byte[] hexChars = new byte[bytes.length * 2];
+		for (int j = 0; j < bytes.length; j++) {
+			int v = bytes[j] & 0xFF;
+			hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+			hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+		}
+		return new String(hexChars, StandardCharsets.UTF_8);
+	}
 }

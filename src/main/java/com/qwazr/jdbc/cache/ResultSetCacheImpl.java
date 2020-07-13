@@ -24,52 +24,65 @@ import java.util.concurrent.locks.ReentrantLock;
 
 abstract class ResultSetCacheImpl implements ResultSetCache {
 
-    private final ConcurrentHashMap<String, ReentrantLock> activeKeys;
-    private final ConcurrentHashMap<String, ByteArrayOutputStream> cache;
+	private final ConcurrentHashMap<String, ReentrantLock> activeKeys;
+	private final ConcurrentHashMap<String, ByteArrayOutputStream> cache;
+	private final CacheConfig config;
 
-    ResultSetCacheImpl() {
-        this.activeKeys = new ConcurrentHashMap<>();
-        this.cache = new ConcurrentHashMap<>();
-    }
+	ResultSetCacheImpl(CacheConfig config) {
+		this.activeKeys = new ConcurrentHashMap<>();
+		this.cache = new ConcurrentHashMap<>();
+		if (config != null) {
+			this.config = config;
+		} else {
+			this.config = CacheConfig.alwaysAccept();
+		}
+	}
 
-    /**
-     * Check if an entry is available for this key.
-     *
-     * @param key the computed key
-     * @return always true if the cache entry exists
-     */
+	/**
+	 * Check if an entry is available for this key.
+	 *
+	 * @param key the computed key
+	 * @return always true if the cache entry exists
+	 */
 
-    public boolean checkIfExists(final String key) {
-        return cache.containsKey(key);
-    }
+	@Override
+	public boolean checkIfExists(final String key) {
+		return cache.containsKey(key);
+	}
 
-    @Override
-    public void flush() throws SQLException {
-        cache.clear();
-    }
+	@Override
+	public void flush() throws SQLException {
+		cache.clear();
+	}
 
-    private ConcurrentHashMap<String, ReentrantLock> checkCacheMap() {
-        return Objects.requireNonNull(activeKeys, "No cache");
-    }
+	private ConcurrentHashMap<String, ReentrantLock> checkCacheMap() {
+		return Objects.requireNonNull(activeKeys, "No cache");
+	}
 
-    private CachedStatement checkCachedStatement(final Statement stmt) throws SQLException {
-        Objects.requireNonNull(stmt, "The statement is null");
-        if (stmt instanceof CachedStatement)
-            return (CachedStatement) stmt;
-        throw new SQLException("The statement is not cached");
-    }
+	private CachedStatement checkCachedStatement(final Statement stmt) throws SQLException {
+		Objects.requireNonNull(stmt, "The statement is null");
+		if (stmt instanceof CachedStatement) {
+			return (CachedStatement) stmt;
+		}
+		throw new SQLException("The statement is not cached");
+	}
 
-    String checkKey(final Statement stmt) throws SQLException {
-        return Objects.requireNonNull(checkCachedStatement(stmt).getOrGenerateKey(), "No key found");
-    }
+	String checkKey(final Statement stmt) throws SQLException {
+		return Objects.requireNonNull(checkCachedStatement(stmt).getOrGenerateKey(), "No key found");
+	}
 
-    @Override
-    public int active() {
-        return checkCacheMap().size();
-    }
+	@Override
+	public int active() {
+		return checkCacheMap().size();
+	}
 
-    @Override
-    public boolean active(Statement stmt) throws SQLException {
-        return checkCacheMap().containsKey(checkKey(stmt));
-    }
+	@Override
+	public boolean active(Statement stmt) throws SQLException {
+		return checkCacheMap().containsKey(checkKey(stmt));
+	}
+
+	@Override
+	public boolean acceptQuery(String query) {
+		return config.acceptQuery(query);
+	}
 }

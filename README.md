@@ -42,6 +42,8 @@ Class.forName("com.qwazr.jdbc.cache.Driver");
 Properties info = new Properties();
 info.setProperty("cache.driver.url", "jdbc:derby:memory:myDB;create=true");
 info.setProperty("cache.driver.class", "org.apache.derby.jdbc.EmbeddedDriver");
+info.setProperty("cache.config.pattern.1", "some_table_name");
+info.setProperty("cache.config.pattern.2", "select * from some_prefix_.*");
 ```
 
 Use the file cache implementation:
